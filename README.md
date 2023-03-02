@@ -1,0 +1,2 @@
+# futil
+Fishing common utilities.
