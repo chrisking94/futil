@@ -3,14 +3,14 @@
 # @Author       : Chris
 # @Description  :
 from unittest import TestCase
-from ..data import zip_files2bytes, iter_files_from_zip_bytes
+from ..data import zip_data2bytes, iter_files_from_zip_bytes
 from ..data import zip_coco2bytes, unzip_bytes
 from ..data import NestedListFlatter
 
 
 class Test(TestCase):
     def test_zip_files2bytes(self):
-        zip_bytes = zip_files2bytes(["Z:/Fishing/pms/img/goods/src/3636363713274707.jpg"])
+        zip_bytes = zip_data2bytes(["Z:/Fishing/pms/img/goods/src/3636363713274707.jpg"])
         with open("F:/tmp/zip_files2bytes.zip", "wb") as f:
             f.write(zip_bytes)
         # for name, bts in iter_files_from_zip_bytes(zip_bytes):

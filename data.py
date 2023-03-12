@@ -6,7 +6,6 @@ import base64
 import json
 import os.path
 import uuid
-from pathlib import Path
 from typing import Union, List, Tuple
 from copy import deepcopy
 import io
@@ -43,27 +42,9 @@ def zip_coco2bytes(coco_data: Union[dict, str]) -> bytes:
         raise NotImplementedError(f"Unsupported coco data type '{coco_data}'!")
 
 
-def zip_files2bytes(files: Union[list, dict]) -> bytes:
-    """
-    When files is of type 'list': Gather all files in the list and zip them. Entry name is flatted as file <idx>_name.
-    :param files:
-    :return:
-    """
-    with io.BytesIO() as buffer:
-        with zipfile.ZipFile(buffer, "a", zipfile.ZIP_DEFLATED, True) as zf:
-            if isinstance(files, list):
-                for i in range(len(files)):
-                    file_path = files[i]
-                    file_name = os.path.basename(file_path)
-                    zf.write(file_path, f"{i}_{file_name}")
-            else:
-                raise NotImplementedError()
-        return buffer.getvalue()
-
-
 def zip_data2bytes(data: List[Union[str, dict, Image.Image]]):
     """
-    Zip a list of data item to bytes.
+    Zip a list of data item to bytes. Entry name is reformatted as file <idx>_<ItemName>.
     :param data: List of data item. Data item can be:
         1. 'str': Means file path (Maybe in LabelStudio style).
         2. 'dict' with key 'b64': Bytes encoded in base64.
@@ -71,14 +52,15 @@ def zip_data2bytes(data: List[Union[str, dict, Image.Image]]):
     """
     with io.BytesIO() as buffer:
         with zipfile.ZipFile(buffer, "a", zipfile.ZIP_DEFLATED, True) as zf:
-            for item in data:
+            for i in range(len(data)):
+                item = data[i]
                 if isinstance(item, str):  # File path.
                     file_name = os.path.basename(item)
-                    zf.write(realpath(item), file_name)
+                    zf.write(realpath(item), f"{i}_{file_name}")
                 elif isinstance(item, Image.Image):  # Image.
                     im_buffer = io.BytesIO()
                     item.save(im_buffer, "JPEG")
-                    zf.writestr(str(uuid.uuid4())+".jpg", im_buffer.getvalue())
+                    zf.writestr(f"{i}_{uuid.uuid4()}.jpg", im_buffer.getvalue())
                 elif isinstance(item, dict):  # Data dict.
                     b64_str = item.get("b64")
                     if b64_str is not None:
@@ -86,7 +68,7 @@ def zip_data2bytes(data: List[Union[str, dict, Image.Image]]):
                     else:
                         raise NotImplementedError(f"Unsupported data dict '{item}'.")
                     item_name = item.get("name") or str(uuid.uuid4())
-                    zf.writestr(item_name, item_bytes)
+                    zf.writestr(f"{i}_{item_name}", item_bytes)
                 else:
                     raise NotImplementedError(f"Unknown data '{item}(type={type(item)})'.")
         return buffer.getvalue()
@@ -104,38 +86,6 @@ def iter_files_from_zip_bytes(zip_bytes: bytes) -> List[Tuple[str, bytes]]:
 
 
 def unzip_bytes(zip_bytes: bytes, output_dir: str):
-    """
-    Unzip zip bytes to disk files.
-    :param zip_bytes:
-    :param output_dir:
-    :return:
-    """
-    zf = zipfile.ZipFile(io.BytesIO(zip_bytes), "r")
-    zf.extractall(output_dir)
-
-
-def zip_dir2bytes(dir_path: str):
-    """Zip a directory and its files to bytes. Sub dir included."""
-    dir = Path(dir_path)
-    with io.BytesIO() as buffer:
-        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for entry in dir.rglob("*"):
-                zip_file.write(entry, entry.relative_to(dir))
-        return buffer.getvalue()
-
-
-def iter_files4zip_bytes(zip_bytes: bytes) -> List[Tuple[str, bytes]]:
-    """
-    Iterate file from zip file bytes.
-    :param zip_bytes:
-    :return: [(file_name1, file_bytes1), ...]
-    """
-    zf = zipfile.ZipFile(io.BytesIO(zip_bytes), "r", zipfile.ZIP_DEFLATED, False)
-    for fileinfo in zf.infolist():
-        yield fileinfo.filename, zf.read(fileinfo)
-
-
-def unzip_bytes2dir(zip_bytes: bytes, output_dir: str):
     """
     Unzip zip bytes to disk files.
     :param zip_bytes:
