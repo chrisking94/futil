@@ -6,6 +6,7 @@ import base64
 import json
 import os.path
 import uuid
+from pathlib import Path
 from typing import Union, List, Tuple
 from copy import deepcopy
 import io
@@ -94,6 +95,38 @@ def unzip_bytes(zip_bytes: bytes, output_dir: str):
     """
     zf = zipfile.ZipFile(io.BytesIO(zip_bytes), "r")
     zf.extractall(output_dir)
+
+
+def zip_dir2bytes(dir_path: str):
+    """Zip a directory and its files to bytes. Sub dir included."""
+    dir = Path(dir_path)
+    with io.BytesIO() as buffer:
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for entry in dir.rglob("*"):
+                zip_file.write(entry, entry.relative_to(dir))
+        return buffer.getvalue()
+
+
+def unzip_bytes2dir(zip_bytes: bytes, output_dir: str):
+    """
+    Unzip zip bytes to disk files.
+    :param zip_bytes:
+    :param output_dir:
+    :return:
+    """
+    zf = zipfile.ZipFile(io.BytesIO(zip_bytes), "r")
+    zf.extractall(output_dir)
+
+
+def iter_files4zip_bytes(zip_bytes: bytes) -> List[Tuple[str, bytes]]:
+    """
+    Iterate file from zip file bytes.
+    :param zip_bytes:
+    :return: [(file_name1, file_bytes1), ...]
+    """
+    zf = zipfile.ZipFile(io.BytesIO(zip_bytes), "r", zipfile.ZIP_DEFLATED, False)
+    for fileinfo in zf.infolist():
+        yield fileinfo.filename, zf.read(fileinfo)
 
 
 class NestedListFlatter:
