@@ -287,7 +287,7 @@ class TreeExtractor:
 
     @staticmethod
     def _is_basic_data(data_item):
-        return isinstance(data_item, (str, int, float))
+        return isinstance(data_item, (str, int, float, type(None)))
 
     @staticmethod
     def _remove_empty_str(data_items: list):
