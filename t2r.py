@@ -6,14 +6,15 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Any
 
 from jsonpath_ng import ext as jsonpath
-
-from . import config as xml
+from lxml.etree import _Comment as XmlComment
+from lxml.etree import _Element as XmlElement
+from lxml.etree import _ElementTree as XmlDocument
 
 
 class MappingTreeNode:
     def __init__(self):
         self.tag: str = None
-        self.engine: TreeExtractor = None
+        self.engine: ExtractionEngine = None
         self.children: List[MappingTreeNode] = []
 
     def has_attr(self, name: str):
@@ -39,7 +40,7 @@ class MappingTreeNode:
         return f"{self.tag}({attr_str})"
 
 
-class TreeExtractor(ABC):
+class ExtractionEngine(ABC):
     @abstractmethod
     def parse(self, data_node, path, conf_node: MappingTreeNode):
         """
@@ -48,7 +49,7 @@ class TreeExtractor(ABC):
         pass
 
 
-class JsonExtractor(TreeExtractor):
+class JsonEngine(ExtractionEngine):
     def parse(self, data_node, path, conf_node: MappingTreeNode):
         extracted = jsonpath.parse(path).find(data_node)
         extracted = [e.value for e in extracted]
@@ -58,7 +59,7 @@ class JsonExtractor(TreeExtractor):
         return "jsonpath-ng"
 
 
-class ObjectExtractor(TreeExtractor):
+class ObjectEngine(ExtractionEngine):
     """
     Extract date by object's attribute name.
     """
@@ -72,20 +73,20 @@ class ObjectExtractor(TreeExtractor):
 
 
 class MappingTree:
-    __name2engine: Dict[str, TreeExtractor] = {}
+    __name2engine: Dict[str, ExtractionEngine] = {}
 
     @staticmethod
-    def register(name: str, engine: TreeExtractor):
+    def register(name: str, engine: ExtractionEngine):
         if name in MappingTree.__name2engine:
             raise Exception(f"There's already an engine registered as name '{name}'!")
         MappingTree.__name2engine[name] = engine
 
     @staticmethod
-    def compile(xml_doc: xml.XmlDocument) -> MappingTreeNode:
-        return MappingTree._r_compile(xml_doc.getroot(), JsonExtractor())  # Json engine as default.
+    def compile(xml_doc: XmlDocument) -> MappingTreeNode:
+        return MappingTree._r_compile(xml_doc.getroot(), JsonEngine())  # Json engine as default.
 
     @staticmethod
-    def _r_compile(xml_node: xml.XmlElement, parent_engine: TreeExtractor):
+    def _r_compile(xml_node: XmlElement, parent_engine: ExtractionEngine):
         m_node = MappingTreeNode()
         # 1 Collect attributes.
         # 1.1 General collecting.
@@ -106,7 +107,7 @@ class MappingTree:
         m_node.engine = engine
         # 3. Collect children.
         for x_child_node in xml_node.iterchildren():
-            if isinstance(x_child_node, xml.XmlComment):  # Ignore comment.
+            if isinstance(x_child_node, XmlComment):  # Ignore comment.
                 continue
             m_child_node = MappingTree._r_compile(x_child_node, engine)
             m_node.children.append(m_child_node)
@@ -118,15 +119,15 @@ class MappingTree:
         pass
 
 
-MappingTree.register("json", JsonExtractor())
-MappingTree.register("object", ObjectExtractor())
+MappingTree.register("json", JsonEngine())
+MappingTree.register("object", ObjectEngine())
 
 
 class TreeExtractor:
     """
     Extract data tree to flat dict.
     """
-    def __init__(self, config: xml.XmlDocument):
+    def __init__(self, config: XmlDocument):
         self._mapping = MappingTree.compile(config)
 
     def extract_items(self, items: List[Any]) -> List[Dict[str, Any]]:
@@ -176,9 +177,9 @@ class TreeExtractor:
                 # Merge with other 'rows' node.
                 for field, data_item in field2data_item.items():
                     if field in res:
-                        res[field].append(data_item)
-                    else:
-                        res[field] = [data_item]
+                        raise RuntimeError(f"{config_node}: Duplicate field '{field}'. "
+                                           f"Existing value='{res[field]}', incoming value='{data_item}'.")
+                    res[field] = data_item
         elif tag == "items":  # Returns {field1: data_item1, field2: data_item2, ...}
             if len(extracted_data_nodes) > 1:
                 raise RuntimeError(f"{config_node}: There shouldn't be more than 1 extracted data nodes.")
