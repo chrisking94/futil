@@ -237,7 +237,8 @@ class TreeExtractor:
                 else:
                     res[field] = None
             else:
-                res[field] = items  # List item. i.e. An item of list type.
+                # TODO: Check item type.
+                res[field] = items  # A list of items.
         elif tag == "itemJoin":
             if len(extracted_data_nodes) == 0:
                 if not is_optional:

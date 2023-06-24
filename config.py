@@ -16,13 +16,29 @@ from typing import Dict, List, Union
 import glob
 import yaml
 
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../config'))
+
+
+class SimpleConfig:
+    def __init__(self, offset_path=""):
+        self._root = os.path.abspath(os.path.join(ROOT, offset_path))
+
+    def read_yaml(self, rel_path: str):
+        """Read yaml as python object."""
+        with open(f"{self._root}/{rel_path}", "r", encoding="utf8") as f:
+            obj = yaml.safe_load(f)
+        return obj
+
+    def read_json(self, rel_path: str):
+        with open(f"{self._root}/{rel_path}", "r", encoding="utf8") as f:
+            obj = json.load(f)
+        return obj
+
 
 class CascadeConfig:
     """
     层叠配置。设计目标是减少配置冗余。
     """
-    ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../config'))
-
     def __init__(self, site_id: str, bases: List[str] = ("default",)):
         """
         :param site_id: Top level folder name of the set of config files under 'root'.
@@ -30,7 +46,7 @@ class CascadeConfig:
             The first base site has the highest priority when cascading.
             The lower the second one and so on.
         """
-        self.root = CascadeConfig.ROOT
+        self.root = ROOT
         self.site_id = site_id
         self._site_seq = [site_id, *bases]  # The highest priority to the lowest priority.
         self._dynamic_config = {}
