@@ -7,11 +7,15 @@ class FilesystemClient(ABC):
         self._root = root
 
     @abstractmethod
-    def upload(self, local_fp: str, remote_fp: str):
+    def upload(self, local_path: str, remote_path: str):
         pass
 
     @abstractmethod
-    def download(self, remote_fp: str, local_fp: str):
+    def upload_buffer(self, buffer, remote_path: str):
+        pass
+
+    @abstractmethod
+    def download(self, remote_path: str, local_path: str):
         pass
 
     @abstractmethod
@@ -34,11 +38,11 @@ class WebDAVFolder(FilesystemClient):
         client.verify = True  # To not check SSL certificates (Default = True)
         self.client = client
 
-    def upload(self, local_fp: str, remote_fp: str):
-        self.client.upload(self._abspath(remote_fp), local_fp)
+    def upload(self, local_path: str, remote_path: str):
+        self.client.upload(self._abspath(remote_path), local_path)
 
-    def download(self, remote_fp: str, local_fp: str):
-        self.client.download(self._abspath(remote_fp), local_fp)
+    def download(self, remote_path: str, local_path: str):
+        self.client.download(self._abspath(remote_path), local_path)
 
     def makedirs(self, remote_path: str):
         self.client.mkdir(self._abspath(remote_path))
