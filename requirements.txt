@@ -3,3 +3,4 @@ pillow
 lxml
 pyyaml
 jsonpath_ng
+webdavclient3
