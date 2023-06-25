@@ -1,4 +1,5 @@
 import io
+import os
 from abc import ABC, abstractmethod
 from webdav3.client import Client
 
@@ -20,7 +21,7 @@ class FilesystemClient(ABC):
         pass
 
     def _abspath(self, remote_path: str):
-        return self._root + remote_path
+        return os.path.join(self._root, remote_path)
 
 
 class WebDAVFolder(FilesystemClient):
