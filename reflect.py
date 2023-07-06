@@ -4,6 +4,7 @@
 # @Description  : Reflection utilities.
 import importlib
 import inspect
+from typing import Dict, Any
 
 
 def get_class(full_name: str) -> type:
@@ -32,3 +33,20 @@ def instantiate(clazz: type, candidate_kwargs: dict):
                                 f"class={type(clazz)}, "
                                 f"constructor={signature}")
     return clazz(**name2val)
+
+
+def set_fields(obj, field2value: Dict[str, Any], absent_ok=False):
+    """
+    Set fields for object.
+    :param obj: Target object.
+    :param field2value: Field name - value mapping.
+    :param absent_ok: If 'False', raise exception when the field is absent from 'obj'. Otherwise, ignore the field.
+    """
+    f2val = vars(obj)
+    for name, value in field2value.items():
+        if name not in f2val:
+            if absent_ok:
+                continue
+            else:
+                raise AttributeError(f"Field '{name}' does not exist on object '{obj}' of type '{type(obj)}'.")
+        setattr(obj, name, value)
