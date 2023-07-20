@@ -8,7 +8,6 @@ from typing import Dict, List, Any
 from jsonpath_ng import ext as jsonpath
 from lxml.etree import _Comment as XmlComment
 from lxml.etree import _Element as XmlElement
-from lxml.etree import _ElementTree as XmlDocument
 
 
 class MappingTreeNode:
@@ -82,8 +81,8 @@ class MappingTree:
         MappingTree.__name2engine[name] = engine
 
     @staticmethod
-    def compile(xml_doc: XmlDocument) -> MappingTreeNode:
-        return MappingTree._r_compile(xml_doc.getroot(), JsonEngine())  # Json engine as default.
+    def compile(xml_ele: XmlElement) -> MappingTreeNode:
+        return MappingTree._r_compile(xml_ele, JsonEngine())  # Json engine as default.
 
     @staticmethod
     def _r_compile(xml_node: XmlElement, parent_engine: ExtractionEngine):
@@ -127,7 +126,7 @@ class TreeExtractor:
     """
     Extract data tree to flat dict.
     """
-    def __init__(self, config: XmlDocument):
+    def __init__(self, config: XmlElement):
         self._mapping = MappingTree.compile(config)
 
     def extract_items(self, items: List[Any]) -> List[Dict[str, Any]]:
